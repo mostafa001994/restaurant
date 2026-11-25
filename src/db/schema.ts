@@ -1,4 +1,4 @@
-import { index, integer, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, numeric, pgTable, serial, text, time, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -69,3 +69,146 @@ export const rateLimits = pgTable('rate_limits', {
   count: integer('count').notNull(),
   resetAt: ts('reset_at').notNull(),
 });
+
+// ───────────────────────── هسته‌ی مشتری ─────────────────────────
+const money = (name: string) => numeric(name, { precision: 12, scale: 2 });
+const coord = (name: string) => numeric(name, { precision: 10, scale: 7 });
+
+export const restaurants = pgTable('restaurants', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 191 }).notNull(),
+  description: text('description'),
+  address: varchar('address', { length: 255 }).notNull(),
+  latitude: coord('latitude'),
+  longitude: coord('longitude'),
+  logo: text('logo'),
+  coverImage: text('cover_image'),
+  openTime: time('open_time'),
+  closeTime: time('close_time'),
+  isOpen: boolean('is_open').notNull().default(true),
+  status: varchar('status', { length: 20 }).notNull().default('active'), // active | inactive
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+});
+
+// فقط یک جدول شعبه (جدول تکراری restaurant_branches در نسخه‌ی لاراول حذف شد)
+export const branches = pgTable('branches', {
+  id: serial('id').primaryKey(),
+  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 191 }).notNull(),
+  address: varchar('address', { length: 255 }),
+  phone: varchar('phone', { length: 30 }),
+  latitude: coord('latitude'),
+  longitude: coord('longitude'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+}, (t) => [index('branches_restaurant_idx').on(t.restaurantId)]);
+
+export const categories = pgTable('categories', {
+  id: serial('id').primaryKey(),
+  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 191 }).notNull(),
+  image: text('image'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+});
+
+export const products = pgTable('products', {
+  id: serial('id').primaryKey(),
+  categoryId: integer('category_id').notNull().references(() => categories.id, { onDelete: 'cascade' }),
+  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 191 }).notNull(),
+  description: text('description'),
+  price: money('price').notNull(),
+  discountPrice: money('discount_price'), // درصد تخفیف (۰ تا ۱۰۰) مثل نسخه‌ی لاراول
+  image: text('image'),
+  isAvailable: boolean('is_available').notNull().default(true),
+  stock: integer('stock'),
+  preparationMinutes: integer('preparation_minutes').notNull().default(30),
+  tags: jsonb('tags').$type<string[]>(),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+}, (t) => [index('products_restaurant_idx').on(t.restaurantId)]);
+
+export const productExtras = pgTable('product_extras', {
+  id: serial('id').primaryKey(),
+  productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 191 }).notNull(),
+  price: money('price').notNull().default('0'), // صفر = رایگان
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+}, (t) => [index('extras_product_idx').on(t.productId)]);
+
+export const addresses = pgTable('addresses', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: varchar('title', { length: 50 }),
+  fullName: varchar('full_name', { length: 100 }).notNull(),
+  phone: varchar('phone', { length: 20 }).notNull(),
+  province: varchar('province', { length: 100 }).notNull(),
+  city: varchar('city', { length: 100 }).notNull(),
+  postalCode: varchar('postal_code', { length: 20 }),
+  addressLine: text('address_line').notNull(),
+  plaque: varchar('plaque', { length: 20 }),
+  lat: coord('lat'),
+  lng: coord('lng'),
+  isDefault: boolean('is_default').notNull().default(false),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+}, (t) => [index('addresses_user_idx').on(t.userId)]);
+
+export const ORDER_STATUSES = ['pending', 'accepted', 'preparing', 'ready_for_pickup', 'on_the_way', 'delivered', 'cancelled'] as const;
+
+export const orders = pgTable('orders', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  guestToken: varchar('guest_token', { length: 100 }),
+  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  totalPrice: money('total_price').notNull(),
+  deliveryFee: money('delivery_fee').notNull().default('0'),
+  discount: money('discount').notNull().default('0'),
+  finalPrice: money('final_price').notNull(),
+  status: varchar('status', { length: 30 }).notNull().default('pending'),
+  paymentStatus: varchar('payment_status', { length: 20 }).notNull().default('unpaid'), // unpaid | paid | refunded
+  paymentMethod: varchar('payment_method', { length: 20 }).notNull().default('online'),
+  paymentGateway: varchar('payment_gateway', { length: 50 }),
+  deliveryAddress: varchar('delivery_address', { length: 500 }).notNull(),
+  deliveryLat: coord('delivery_lat'),
+  deliveryLng: coord('delivery_lng'),
+  scheduledTime: ts('scheduled_time'),
+  preparationMinutes: integer('preparation_minutes'),
+  estimatedDeliveryAt: ts('estimated_delivery_at'),
+  paidAt: ts('paid_at'),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+}, (t) => [index('orders_user_idx').on(t.userId), index('orders_restaurant_idx').on(t.restaurantId)]);
+
+export const orderItems = pgTable('order_items', {
+  id: serial('id').primaryKey(),
+  orderId: integer('order_id').notNull().references(() => orders.id, { onDelete: 'cascade' }),
+  productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  quantity: integer('quantity').notNull(),
+  unitPrice: money('unit_price').notNull(),
+  totalPrice: money('total_price').notNull(),
+  selectedOptions: jsonb('selected_options').$type<{ extra_id: number; name: string; price: number; quantity: number }[]>(),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+}, (t) => [index('order_items_order_idx').on(t.orderId)]);
+
+export const reviews = pgTable('reviews', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  restaurantId: integer('restaurant_id').notNull().references(() => restaurants.id, { onDelete: 'cascade' }),
+  productId: integer('product_id').references(() => products.id, { onDelete: 'cascade' }),
+  orderId: integer('order_id').references(() => orders.id, { onDelete: 'set null' }),
+  rating: integer('rating').notNull(),
+  comment: text('comment'),
+  images: jsonb('images').$type<string[]>(),
+  isApproved: boolean('is_approved').notNull().default(false), // تایید ادمین
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+}, (t) => [uniqueIndex('reviews_user_product_uq').on(t.userId, t.productId)]);

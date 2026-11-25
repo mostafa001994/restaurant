@@ -1,4 +1,4 @@
-import { eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { getDb, roles, users } from '@/db';
 import type { Identifier } from './phone';
 
@@ -98,4 +98,3 @@ export function serializeUser({ user, role }: LoadedUser) {
   };
 }
 
-export { or };

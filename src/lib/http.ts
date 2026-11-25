@@ -12,10 +12,10 @@ export class HttpError extends Error {
 }
 
 /** همه‌ی خطاها را به JSON یکدست (سازگار با لاراول: {message, errors}) تبدیل می‌کند. */
-export function handler(fn: (req: Request) => Promise<Response>) {
-  return async (req: Request): Promise<Response> => {
+export function handler<C = unknown>(fn: (req: Request, ctx: C) => Promise<Response>) {
+  return async (req: Request, ctx: C): Promise<Response> => {
     try {
-      return await fn(req);
+      return await fn(req, ctx);
     } catch (e) {
       if (e instanceof HttpError) {
         return Response.json({ message: e.message, ...e.extra }, { status: e.status, headers: e.headers });
@@ -74,3 +74,12 @@ export function parseCookies(req: Request): Record<string, string> {
   }
   return out;
 }
+
+/** پارامتر عددی مسیر؛ نامعتبر = 404 */
+export function parseId(v: string): number {
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 1 || n > 2_147_483_647) throw new HttpError(404, 'یافت نشد');
+  return n;
+}
+
+export type IdCtx = { params: Promise<{ id: string }> };

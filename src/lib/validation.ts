@@ -39,3 +39,47 @@ export const forgotSchema = withId({});
 export const resetSchema = withId({ code, password: passwordSchema });
 export const profileUpdateSchema = z.object({ name });
 export const refreshSchema = z.object({ refresh_token: z.string().min(20).max(300).optional() });
+
+// ───── هسته‌ی مشتری ─────
+const optStr = (max: number) => z.string().trim().max(max).nullish().transform((v) => v || null);
+const optCoord = z.coerce.number().min(-180).max(180).nullish();
+
+export const addressSchema = z.object({
+  title: optStr(50),
+  full_name: z.string().trim().min(1, 'نام گیرنده الزامی است').max(100),
+  phone: z.string().trim().min(1, 'شماره تماس الزامی است').max(20),
+  province: z.string().trim().min(1, 'استان الزامی است').max(100),
+  city: z.string().trim().min(1, 'شهر الزامی است').max(100),
+  postal_code: optStr(20),
+  address_line: z.string().trim().min(1, 'آدرس الزامی است').max(500),
+  plaque: optStr(20),
+  lat: optCoord,
+  lng: optCoord,
+  is_default: z.boolean().optional().default(false),
+});
+
+export const orderSchema = z.object({
+  restaurant_id: z.coerce.number().int().positive(),
+  delivery_address: z.string().trim().min(1, 'آدرس تحویل الزامی است').max(500),
+  delivery_lat: optCoord,
+  delivery_lng: optCoord,
+  items: z
+    .array(
+      z.object({
+        product_id: z.coerce.number().int().positive(),
+        quantity: z.coerce.number().int().min(1).max(99),
+        extras: z
+          .array(z.object({ extra_id: z.coerce.number().int().positive(), quantity: z.coerce.number().int().min(1).max(99) }))
+          .max(30)
+          .optional()
+          .default([]),
+      }),
+    )
+    .min(1, 'سبد خرید خالی است')
+    .max(50),
+});
+
+export const reviewSchema = z.object({
+  rating: z.coerce.number().int().min(1, 'امتیاز بین ۱ تا ۵ است').max(5),
+  comment: optStr(1000),
+});
