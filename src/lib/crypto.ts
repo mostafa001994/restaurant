@@ -1,4 +1,6 @@
 import {
+  createCipheriv,
+  createDecipheriv,
   createHash,
   createHmac,
   randomBytes,
@@ -66,4 +68,26 @@ export function safeEqualHex(a: string, b: string): boolean {
   const x = Buffer.from(a, 'hex');
   const y = Buffer.from(b, 'hex');
   return x.length === y.length && timingSafeEqual(x, y);
+}
+
+// رمزنگاری رازهای ذخیره‌شده در DB (مثل رمز ترمینال بانک): AES-256-GCM، قالب e1$iv$tag$ciphertext
+const encKey = () => createHash('sha256').update(`enc:${env().AUTH_SECRET}`).digest();
+
+export function encryptSecret(plain: string): string {
+  const iv = randomBytes(12);
+  const c = createCipheriv('aes-256-gcm', encKey(), iv);
+  const ct = Buffer.concat([c.update(plain, 'utf8'), c.final()]);
+  return `e1$${iv.toString('base64url')}$${c.getAuthTag().toString('base64url')}$${ct.toString('base64url')}`;
+}
+
+export function decryptSecret(stored: string): string | null {
+  const [v, iv, tag, ct] = stored.split('$');
+  if (v !== 'e1' || !iv || !tag || !ct) return null;
+  try {
+    const d = createDecipheriv('aes-256-gcm', encKey(), Buffer.from(iv, 'base64url'));
+    d.setAuthTag(Buffer.from(tag, 'base64url'));
+    return Buffer.concat([d.update(Buffer.from(ct, 'base64url')), d.final()]).toString('utf8');
+  } catch {
+    return null; // کلید AUTH_SECRET عوض شده یا داده خراب است
+  }
 }

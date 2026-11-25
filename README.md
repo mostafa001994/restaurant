@@ -36,5 +36,19 @@
 
 جزئیات اپ فلاتر: `docs/FLUTTER.md`
 
+## پرداخت
+| مسیر | کار |
+|---|---|
+| `GET /api/payment/gateways` | درگاه‌های فعال `[{key,name}]` |
+| `POST /api/orders/:id/pay` | `{gateway}` → `{redirect_url}` |
+| `GET/POST /api/payment/callback/:gateway/:orderId` | بازگشت از بانک → ریدایرکت به `/payment/result?order_id&status&message` (همان که webview اپ فلاتر شناسایی می‌کند) |
+| `GET/POST /api/admin/payment-gateways` · `PUT /api/admin/payment-gateways/:id` | تنظیمات درگاه (رمز ترمینال رمزنگاری‌شده ذخیره و هرگز برنگردانده می‌شود) |
+| `GET /api/admin/transactions` · `/:id` | تراکنش‌ها، فیلتر `status` و `gateway`، صفحه‌بندی ۲۰تایی |
+
+- `APP_URL` را حتماً روی دامنه‌ی نهایی بگذارید؛ آدرس callback از آن ساخته می‌شود.
+- هر پرداخت فقط یک‌بار تایید می‌شود (claim اتمیک روی تراکنش) و سفارش فقط یک‌بار «پرداخت‌شده» می‌شود. مبلغ و authority از رکورد تراکنش خوانده می‌شود، نه از ورودی بانک/کاربر.
+- زرین‌پال با `currency: "IRT"` (تومان) ارسال می‌شود؛ ملت با ×۱۰ به ریال.
+- برای فعال‌کردن درگاه: `PUT /api/admin/payment-gateways/:id` با `{"is_enabled": true, ...}`؛ ملت بدون ترمینال/نام‌کاربری/رمز و زرین‌پالِ واقعی بدون merchant_id فعال نمی‌شود.
+
 ## هنوز منتقل نشده
-پرداخت (`/payment/gateways`، `/orders/:id/pay`، زرین‌پال/ملت)، پنل ادمین و وندور، داشبورد آمار. جدول `branches` تنها جدول شعبه است (جدول تکراری `restaurant_branches` حذف شد).
+پنل ادمین (رستوران/غذا/کاربر/سفارش) و وندور، داشبورد آمار. جدول `branches` تنها جدول شعبه است (جدول تکراری `restaurant_branches` حذف شد).

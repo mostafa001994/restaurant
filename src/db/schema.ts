@@ -212,3 +212,39 @@ export const reviews = pgTable('reviews', {
   createdAt: ts('created_at').notNull().defaultNow(),
   updatedAt: ts('updated_at').notNull().defaultNow(),
 }, (t) => [uniqueIndex('reviews_user_product_uq').on(t.userId, t.productId)]);
+
+// ───────────────────────── پرداخت ─────────────────────────
+export const paymentGatewaySettings = pgTable('payment_gateway_settings', {
+  id: serial('id').primaryKey(),
+  key: varchar('key', { length: 30 }).notNull().unique(), // zarinpal | mellat
+  name: varchar('name', { length: 100 }).notNull(),
+  isEnabled: boolean('is_enabled').notNull().default(false),
+  sandbox: boolean('sandbox').notNull().default(true),
+  merchantId: varchar('merchant_id', { length: 255 }), // زرین‌پال
+  terminalId: varchar('terminal_id', { length: 255 }), // ملت
+  username: varchar('username', { length: 255 }), // ملت
+  passwordEnc: text('password_enc'), // ملت؛ رمزنگاری‌شده (AES-256-GCM)
+  extra: jsonb('extra'),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+});
+
+export const transactions = pgTable(
+  'transactions',
+  {
+    id: serial('id').primaryKey(),
+    orderId: integer('order_id').references(() => orders.id, { onDelete: 'set null' }),
+    userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+    restaurantId: integer('restaurant_id').references(() => restaurants.id, { onDelete: 'set null' }),
+    amount: money('amount').notNull(), // تومان
+    currency: varchar('currency', { length: 3 }).notNull().default('IRT'),
+    type: varchar('type', { length: 10 }).notNull().default('debit'), // debit | credit
+    gateway: varchar('gateway', { length: 30 }),
+    transactionId: varchar('transaction_id', { length: 191 }), // authority / RefId
+    status: varchar('status', { length: 20 }).notNull().default('pending'), // pending | processing | success | failed | refunded
+    meta: jsonb('meta'),
+    createdAt: ts('created_at').notNull().defaultNow(),
+    updatedAt: ts('updated_at').notNull().defaultNow(),
+  },
+  (t) => [index('transactions_order_idx').on(t.orderId), uniqueIndex('transactions_gateway_tx_uq').on(t.gateway, t.transactionId)],
+);

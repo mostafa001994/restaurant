@@ -9,6 +9,7 @@ const schema = z.object({
   KAVENEGAR_TEMPLATE: z.string().default('verify'),
   RESEND_API_KEY: z.string().optional(),
   MAIL_FROM: z.string().optional(),
+  APP_URL: z.string().url().optional(), // آدرس عمومی سایت برای callback پرداخت، مثل https://example.com
   NODE_ENV: z.string().default('development'),
 });
 

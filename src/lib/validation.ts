@@ -83,3 +83,14 @@ export const reviewSchema = z.object({
   rating: z.coerce.number().int().min(1, 'امتیاز بین ۱ تا ۵ است').max(5),
   comment: optStr(1000),
 });
+
+const optSecret = z.string().trim().max(255).nullish();
+export const gatewayUpdateSchema = z.object({
+  is_enabled: z.boolean().optional(),
+  sandbox: z.boolean().optional(),
+  merchant_id: optSecret,
+  terminal_id: optSecret,
+  username: optSecret,
+  password: optSecret, // خالی = بدون تغییر
+});
+export const gatewayCreateSchema = z.object({ key: z.enum(['zarinpal', 'mellat']) });

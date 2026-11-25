@@ -20,6 +20,11 @@ async function main() {
     { productId: ps[0]!.id, name: 'نوشابه', price: '15000' },
     { productId: ps[1]!.id, name: 'سالاد فصل', price: '0' },
   ]);
+  const { ensureGateways } = await import('../src/lib/payment/service');
+  const { paymentGatewaySettings } = await import('../src/db');
+  const { eq } = await import('drizzle-orm');
+  await ensureGateways();
+  await db.update(paymentGatewaySettings).set({ isEnabled: true, sandbox: true }).where(eq(paymentGatewaySettings.key, 'zarinpal')); // زرین‌پال sandbox برای تست
   console.log('رستوران نمونه ساخته شد: id =', r!.id);
 }
 main().catch((e) => { console.error(e); process.exit(1); });
