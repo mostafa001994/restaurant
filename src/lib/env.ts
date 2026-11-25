@@ -10,6 +10,13 @@ const schema = z.object({
   RESEND_API_KEY: z.string().optional(),
   MAIL_FROM: z.string().optional(),
   APP_URL: z.string().url().optional(), // آدرس عمومی سایت برای callback پرداخت، مثل https://example.com
+  S3_ENDPOINT: z.string().url().optional(), // مثل https://s3.pars.pack
+  S3_BUCKET: z.string().optional(),
+  S3_ACCESS_KEY: z.string().optional(),
+  S3_SECRET_KEY: z.string().optional(),
+  S3_REGION: z.string().default('us-east-1'),
+  S3_PUBLIC_URL: z.string().url().optional(), // آدرس عمومی خواندن فایل‌ها
+  S3_ACL: z.string().optional(), // مثلاً public-read (اگر سرویس لازم دارد)
   NODE_ENV: z.string().default('development'),
 });
 

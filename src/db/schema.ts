@@ -1,10 +1,10 @@
-import { boolean, index, integer, jsonb, numeric, pgTable, serial, text, time, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, numeric, pgTable, primaryKey, serial, text, time, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 
 export const roles = pgTable('roles', {
   id: serial('id').primaryKey(),
-  name: varchar('name', { length: 100 }).notNull(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
   slug: varchar('slug', { length: 100 }).notNull().unique(),
   label: varchar('label', { length: 100 }),
 });
@@ -247,4 +247,39 @@ export const transactions = pgTable(
     updatedAt: ts('updated_at').notNull().defaultNow(),
   },
   (t) => [index('transactions_order_idx').on(t.orderId), uniqueIndex('transactions_gateway_tx_uq').on(t.gateway, t.transactionId)],
+);
+
+// ───────────────────────── ادمین: مواد اولیه، نقش/دسترسی ─────────────────────────
+export const ingredients = pgTable('ingredients', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 191 }).notNull(),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+});
+
+export const productIngredients = pgTable(
+  'product_ingredients',
+  {
+    productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+    ingredientId: integer('ingredient_id').notNull().references(() => ingredients.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.productId, t.ingredientId] })],
+);
+
+export const permissions = pgTable('permissions', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 191 }).notNull().unique(),
+  slug: varchar('slug', { length: 191 }).notNull().unique(),
+  label: varchar('label', { length: 191 }),
+  createdAt: ts('created_at').notNull().defaultNow(),
+  updatedAt: ts('updated_at').notNull().defaultNow(),
+});
+
+export const rolePermission = pgTable(
+  'role_permission',
+  {
+    roleId: integer('role_id').notNull().references(() => roles.id, { onDelete: 'cascade' }),
+    permissionId: integer('permission_id').notNull().references(() => permissions.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.roleId, t.permissionId] })],
 );

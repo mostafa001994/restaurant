@@ -25,6 +25,9 @@ export function handler<C = unknown>(fn: (req: Request, ctx: C) => Promise<Respo
         for (const i of e.issues) (errors[i.path.join('.') || '_'] ??= []).push(i.message);
         return Response.json({ message: e.issues[0]?.message ?? 'داده‌ی ورودی نامعتبر است', errors }, { status: 422 });
       }
+      const code = pgCode(e);
+      if (code === '23505') return Response.json({ message: 'این مقدار قبلاً ثبت شده است' }, { status: 422 });
+      if (code === '23503') return Response.json({ message: 'مرجع نامعتبر است یا رکورد به داده‌های دیگر وابسته است' }, { status: 422 });
       console.error('[api]', e);
       return Response.json({ message: 'خطای داخلی سرور' }, { status: 500 });
     }
@@ -83,3 +86,9 @@ export function parseId(v: string): number {
 }
 
 export type IdCtx = { params: Promise<{ id: string }> };
+
+/** کد خطای Postgres (Drizzle خطا را در cause می‌پیچد) */
+function pgCode(e: unknown): string | undefined {
+  const x = e as { code?: string; cause?: { code?: string } } | null;
+  return x?.cause?.code ?? x?.code;
+}
