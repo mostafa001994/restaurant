@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { getDb, roles, users } from '@/db';
+import { env } from './env';
 import type { Identifier } from './phone';
 
 export type UserRow = typeof users.$inferSelect;
@@ -90,11 +91,21 @@ export function serializeUser({ user, role }: LoadedUser) {
     email: user.email,
     phone: user.phone,
     avatar: user.avatar,
+    avatar_url: publicFileUrl(user.avatar) ?? defaultAvatarUrl(),
     role: { id: role.id, name: role.name, slug: role.slug },
     is_admin: role.slug === 'admin',
     email_verified: !!user.emailVerifiedAt,
     phone_verified: !!user.phoneVerifiedAt,
+    is_verified: !!(user.phoneVerifiedAt || user.emailVerifiedAt),
+    email_verified_at: user.emailVerifiedAt?.toISOString() ?? null,
+    phone_verified_at: user.phoneVerifiedAt?.toISOString() ?? null,
     created_at: user.createdAt.toISOString(),
+    updated_at: user.updatedAt.toISOString(),
   };
 }
 
+
+const appBase = () => (env().APP_URL ?? '').replace(/\/$/, '');
+/** کلید نسبی ذخیره‌شده → آدرس کامل (از طریق ریدایرکت /storage). APP_URL باید تنظیم باشد تا فرانتِ جدا بتواند تصویر را بخواند. */
+export const publicFileUrl = (key: string | null) => (key ? `${appBase()}/storage/${key}` : null);
+export const defaultAvatarUrl = () => `${appBase()}/default-avatar.svg`;

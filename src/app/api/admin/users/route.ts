@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, type SQL } from 'drizzle-orm';
 import { getDb, roles, users } from '@/db';
 import { requireRole } from '@/lib/auth';
 import { hashPassword } from '@/lib/crypto';
@@ -13,7 +13,10 @@ export const dynamic = 'force-dynamic';
 
 export const GET = handler(async (req) => {
   await requireRole(req, 'admin');
-  const rows = await getDb().select({ user: users, role: roles }).from(users).innerJoin(roles, eq(users.roleId, roles.id)).orderBy(desc(users.id)).limit(1000);
+  // فیلتر نقش با slug؛ restaurant_owner (نام قدیمی فرانت) = vendor
+  const roleParam = new URL(req.url).searchParams.get('role');
+  const where: SQL | undefined = roleParam ? eq(roles.slug, roleParam === 'restaurant_owner' ? 'vendor' : roleParam) : undefined;
+  const rows = await getDb().select({ user: users, role: roles }).from(users).innerJoin(roles, eq(users.roleId, roles.id)).where(where).orderBy(desc(users.id)).limit(1000);
   return Response.json(rows.map(serializeUserAdmin));
 });
 

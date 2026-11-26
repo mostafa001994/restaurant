@@ -30,10 +30,11 @@ export const passwordSchema = z
   .refine((v) => /\p{L}/u.test(v) && /\d/.test(v), 'رمز عبور باید شامل حرف و عدد باشد');
 
 const name = z.string().trim().min(2, 'نام حداقل ۲ کاراکتر باشد').max(100);
+const optionalName = z.preprocess((v) => (v === '' || v === null ? undefined : v), name.optional()); // نام خالی = بدون نام
 
 export const requestOtpSchema = withId({});
 export const verifyOtpSchema = withId({ code });
-export const registerSchema = withId({ name: name.optional(), password: passwordSchema });
+export const registerSchema = withId({ name: optionalName, password: passwordSchema });
 export const loginSchema = withId({ password: z.string().min(1, 'رمز عبور را وارد کنید').max(128) });
 export const forgotSchema = withId({});
 export const resetSchema = withId({ code, password: passwordSchema });

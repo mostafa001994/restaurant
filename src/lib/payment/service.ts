@@ -96,8 +96,9 @@ async function markOrderPaid(orderId: number): Promise<boolean> {
   return res.rows.length > 0;
 }
 
+const frontBase = (base: string) => (env().FRONTEND_URL ?? base).replace(/\/$/, '');
 const result = (base: string, orderId: number, ok: boolean, message?: string) =>
-  `${base}/payment/result?order_id=${orderId}&status=${ok ? 'success' : 'failed'}${message ? `&message=${encodeURIComponent(message)}` : ''}`;
+  `${frontBase(base)}/payment/result?order_id=${orderId}&status=${ok ? 'success' : 'failed'}${message ? `&message=${encodeURIComponent(message)}` : ''}`;
 
 /** بازگشت از بانک. آدرس صفحه‌ی نتیجه را برمی‌گرداند (هرگز throw نمی‌کند برای خطاهای درگاه). */
 export async function handleCallback(opts: { gateway: string; orderId: number; params: Record<string, string>; base: string }): Promise<string> {

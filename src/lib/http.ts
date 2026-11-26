@@ -29,7 +29,8 @@ export function handler<C = unknown>(fn: (req: Request, ctx: C) => Promise<Respo
       if (code === '23505') return Response.json({ message: 'این مقدار قبلاً ثبت شده است' }, { status: 422 });
       if (code === '23503') return Response.json({ message: 'مرجع نامعتبر است یا رکورد به داده‌های دیگر وابسته است' }, { status: 422 });
       console.error('[api]', e);
-      return Response.json({ message: 'خطای داخلی سرور' }, { status: 500 });
+      const detail = process.env.NODE_ENV !== 'production' && e instanceof Error ? { detail: e.message } : {};
+      return Response.json({ message: 'خطای داخلی سرور', ...detail }, { status: 500 });
     }
   };
 }
