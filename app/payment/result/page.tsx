@@ -1,5 +1,7 @@
 'use client';
 
+import { Suspense } from 'react';
+
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -7,7 +9,7 @@ import { fetchOrder } from '@/lib/orders';
 import type { Order } from '@/types/models';
 import OrderCountdown from '@/components/OrderCountdown';
 
-export default function PaymentResultPage() {
+function PaymentResultPageInner() {
   const params = useSearchParams();
   const router = useRouter();
 
@@ -61,5 +63,14 @@ export default function PaymentResultPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+
+export default function PaymentResultPage() {
+  return (
+    <Suspense fallback={null}>
+      <PaymentResultPageInner />
+    </Suspense>
   );
 }

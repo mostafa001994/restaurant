@@ -1,7 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import LocationPicker, { UserLocation } from '@/components/location/LocationPicker';
+import dynamic from 'next/dynamic';
+import type { UserLocation } from '@/components/location/LocationPicker';
+
+// leaflet به window نیاز دارد؛ فقط سمت کلاینت لود شود
+const LocationPicker = dynamic(() => import('@/components/location/LocationPicker'), { ssr: false });
 import { Restaurant, Branch } from '@/types/models';
 import { loadRestaurants } from '@/lib/useAdminData';
 import Link from 'next/link';

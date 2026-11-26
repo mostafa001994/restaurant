@@ -1,12 +1,14 @@
 'use client';
 
+import { Suspense } from 'react';
+
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { saveSession } from '@/lib/token';
 import { afterLoginPath } from '@/lib/auth-redirect';
 
-export default function VerifyPage() {
+function VerifyPageInner() {
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -109,5 +111,13 @@ export default function VerifyPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifyPageInner />
+    </Suspense>
   );
 }
